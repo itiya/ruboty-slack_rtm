@@ -292,9 +292,15 @@ module Ruboty
       end
 
       def make_users_cache
-        resp = client.users_list
-        if resp['ok']
-          resp['members'].each do |user|
+        response = client.users_list
+        members = response["members"]
+        while response["response_metadata"]["next_cursor"] != ''
+          response = client.users_list(cursor: response["response_metadata"]["next_cursor"])
+          members.concat(response["members"])
+        end
+
+        if response['ok']
+          members.each do |user|
             @user_info_caches[user['id']] = user
           end
         end
