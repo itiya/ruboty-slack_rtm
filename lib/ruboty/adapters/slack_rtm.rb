@@ -114,7 +114,11 @@ module Ruboty
       end
 
       def client
-        @client ||= ::Slack::Client.new(token: ENV['SLACK_OAUTH_TOKEN'])
+        @client ||= ::Slack::Client.new(token: ENV['SLACK_TOKEN'])
+      end
+
+      def oauth_client
+        @oauth_client ||= ::Slack::Client.new(token: ENV['SLACK_OAUTH_TOKEN'])
       end
 
       def realtime
@@ -311,7 +315,7 @@ module Ruboty
       end
 
       def make_usergroups_cache
-        resp = client.usergroups_list
+        resp = oauth_client.usergroups_list
         if resp['ok']
           resp['usergroups'].each do |usergroup|
             @usergroup_info_caches[usergroup['id']] = usergroup
