@@ -8,7 +8,8 @@ require 'faraday'
 module Ruboty
   module Adapters
     class SlackRTM < Base
-      env :SLACK_TOKEN, "Account's token. get one on https://api.slack.com/web#basics"
+      env :SLACK_BOT_TOKEN, "Account's bot token."
+      env :SLACK_OAUTH_TOKEN, "Account's OAuth token."
       env :SLACK_EXPOSE_CHANNEL_NAME, "if this set to 1, message.to will be channel name instead of id", optional: true
       env :SLACK_IGNORE_BOT_MESSAGE, "If this set to 1, bot ignores bot_messages", optional: true
       env :SLACK_IGNORE_GENERAL, "if this set to 1, bot ignores all messages on #general channel", optional: true
@@ -94,7 +95,6 @@ module Ruboty
             set_active
           end
         end
-
         loop do
           realtime.main_loop rescue nil
           break unless ENV['SLACK_AUTO_RECONNECT']
@@ -109,13 +109,12 @@ module Ruboty
         @url ||= begin
           response = Net::HTTP.post_form(URI.parse('https://slack.com/api/rtm.connect'), token: ENV['SLACK_TOKEN'])
           body = JSON.parse(response.body)
-
           URI.parse(body['url'])
         end
       end
 
       def client
-        @client ||= ::Slack::Client.new(token: ENV['SLACK_TOKEN'])
+        @client ||= ::Slack::Client.new(token: ENV['SLACK_OAUTH_TOKEN'])
       end
 
       def realtime
@@ -144,7 +143,6 @@ module Ruboty
         if (data['subtype'] == 'bot_message' || user['is_bot']) && ENV['SLACK_IGNORE_BOT_MESSAGE'] == '1'
           return
         end
-
         if channel
           return if channel['name'] == (ENV['SLACK_GENERAL_NAME'] || 'general') && ENV['SLACK_IGNORE_GENERAL'] == '1'
 
@@ -152,7 +150,6 @@ module Ruboty
         else # direct message
           channel_to = data['channel']
         end
-
         message_info = {
           from: data['channel'],
           from_name: user['name'],
@@ -166,10 +163,8 @@ module Ruboty
 
         text, mention_to = extract_mention(data['text'])
         robot.receive(message_info.merge(body: text, mention_to: mention_to))
-
         (data['attachments'] || []).each do |attachment|
           body, body_mention_to = extract_mention(attachment['fallback'] || "#{attachment['text']} #{attachment['pretext']}".strip)
-
           unless body.empty?
             robot.receive(message_info.merge(body: body, mention_to: body_mention_to))
           end
@@ -316,7 +311,7 @@ module Ruboty
       end
 
       def make_usergroups_cache
-        resp = client.get("usergroups.list")
+        resp = client.usergroups_list
         if resp['ok']
           resp['usergroups'].each do |usergroup|
             @usergroup_info_caches[usergroup['id']] = usergroup
