@@ -7,6 +7,7 @@ module Ruboty
       CONNECTION_CLOSED = Object.new
 
       def initialize(websocket_url:)
+        Ruboty.logger.info("ruboty slack rtm client initialize")
         @queue = Queue.new
         @client = create_client(websocket_url.to_s)
       end
@@ -34,12 +35,14 @@ module Ruboty
 
       def main_loop
         keep_connection
-
+        Ruboty.logger.info("main loop start")
         loop do
           message = @queue.deq
+          Ruboty.logger.info("message come #{message}")
           if message.equal?(CONNECTION_CLOSED)
             break
           end
+          Ruboty.logger.info(message)
           @client.send(message)
         end
       end
@@ -66,6 +69,7 @@ module Ruboty
           loop do
             sleep(30)
             @client.send('', type: 'ping')
+            Ruboty.logger.info("send ping")
           end
         end
       end

@@ -17,9 +17,11 @@ module Ruboty
       env :SLACK_AUTO_RECONNECT, "Enable auto reconnect", optional: true
 
       def run
+        Ruboty.logger.info("run")
         init
         bind
         connect
+        Ruboty.logger.info("run end")
       end
 
       def say(message)
@@ -69,6 +71,7 @@ module Ruboty
       private
 
       def init
+        Ruboty.logger.info("init ")
         response = client.auth_test
         @user_info_caches = {}
         @channel_info_caches = {}
@@ -79,29 +82,42 @@ module Ruboty
         make_users_cache
         make_channels_cache
         make_usergroups_cache
+        Ruboty.logger.info("init end")
       end
 
       def bind
+        Ruboty.logger.info("bind")
         realtime.on_text do |data|
           method_name = "on_#{data['type']}".to_sym
           send(method_name, data) if respond_to?(method_name, true)
         end
+        Ruboty.logger.info("bind end")
       end
 
       def connect
+        Ruboty.logger.info("slack_rtm connect")
         Thread.start do
+          counter = 0
           loop do
             sleep 5
             set_active
+            counter = counter + 1
+            if counter > 12*10
+              Ruboty.logger.info("thread active")
+              counter = 0
+            end
           end
         end
         loop do
+          Ruboty.logger.info("main_loop start")
           realtime.main_loop rescue nil
+          Ruboty.logger.info("reconnect start")
           break unless ENV['SLACK_AUTO_RECONNECT']
           @url = nil
           @realtime = nil
           sleep 3
           bind
+          Ruboty.logger.info("reconnect success")
         end
       end
 
