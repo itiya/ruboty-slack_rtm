@@ -306,7 +306,7 @@ module Ruboty
       end
 
       def make_channels_cache
-        resp = client.channels_list
+        resp = client.conversations_list
         if resp['ok']
           resp['channels'].each do |channel|
             @channel_info_caches[channel['id']] = channel
@@ -337,7 +337,7 @@ module Ruboty
         @channel_info_caches[channel_id] ||= begin
           resp = case channel_id
             when /^C/
-              client.channels_info(channel: channel_id)
+              client.conversations_info(channel: channel_id)
             else
               {}
             end
